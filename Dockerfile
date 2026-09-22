@@ -28,7 +28,7 @@ RUN git clone --depth 1 --branch ${LIBCORAZA_VERSION} https://github.com/corazaw
     ./configure --prefix=/usr/local && \
     make libcoraza.so && \
     mkdir -p /usr/local/include/coraza && \
-    cp coraza/coraza.h /usr/local/include/coraza/ && \
+    find . -name "*.h" -exec cp {} /usr/local/include/coraza/ \; && \
     cp libcoraza.so /usr/local/lib/ && \
     ldconfig
 
