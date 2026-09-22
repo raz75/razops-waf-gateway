@@ -1,9 +1,10 @@
 # ==============================================================================
 # STAGE 1: Builder
 # ==============================================================================
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 ARG NGINX_VERSION=1.26.3
+ARG LIBCORAZA_VERSION=v1.7.0
 
 # Install all essential build tools
 RUN apt-get update && apt-get install -y \
@@ -20,8 +21,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /src
 
-# 1. Build and install libcoraza
-RUN git clone --depth 1 https://github.com/corazawaf/libcoraza.git && \
+# 1. Build and install libcoraza pinned to stable v1.7.0
+RUN git clone --depth 1 --branch ${LIBCORAZA_VERSION} https://github.com/corazawaf/libcoraza.git && \
     cd libcoraza && \
     ./build.sh && \
     ./configure --prefix=/usr/local && \
