@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RazOps WAF Gateway</title>
+    <style>
+        body {
+            background-color: #0a0e17;
+            color: #34d399;
+            font-family: monospace;
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+        .card {
+            border: 1px solid #1f2937;
+            background: #111827;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+        }
+        h1 { color: #38bdf8; margin-bottom: 1rem; }
+        .badge {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge">WAF STATUS: ACTIVE</span>
+        <h1>RazOps WAF Gateway</h1>
+        <p>Engine: <strong>Nginx + OWASP Core Rule Set v4</strong></p>
+        <p>Pipeline: <strong>Automated via GitHub Actions CI/CD</strong></p>
+        <p style="color:#9ca3af; font-size:0.8rem; margin-top:1.5rem;">Protected by razops.net homelab security matrix</p>
+    </div>
+</body>
+</html>
