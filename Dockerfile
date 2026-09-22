@@ -1,74 +1,16 @@
-# ==============================================================================
-# STAGE 1: Builder
-# ==============================================================================
-FROM golang:1.26-bookworm AS builder
+# Use the official OWASP Coraza Nginx hardened base image
+FROM ghcr.io/corazawaf/coraza-nginx:latest
 
-ARG NGINX_VERSION=1.26.3
-ARG LIBCORAZA_VERSION=v1.7.0
-
-# Install all essential build tools
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpcre2-dev \
-    zlib1g-dev \
-    libssl-dev \
-    autoconf \
-    automake \
-    libtool \
-    pkg-config \
-    git \
-    curl
-
-WORKDIR /src
-
-# 1. Build and install libcoraza pinned to stable v1.7.0
-RUN git clone --depth 1 --branch ${LIBCORAZA_VERSION} https://github.com/corazawaf/libcoraza.git && \
-    cd libcoraza && \
-    ./build.sh && \
-    ./configure --prefix=/usr/local && \
-    make libcoraza.so && \
-    mkdir -p /usr/local/include/coraza && \
-    find . -name "*.h" -exec cp {} /usr/local/include/coraza/ \; && \
-    cp libcoraza.so /usr/local/lib/ && \
-    ldconfig
-
-# 2. Download matching Nginx source & Coraza Nginx Connector
-RUN curl -sO http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
-    git clone --depth 1 https://github.com/corazawaf/coraza-nginx.git
-
-# 3. Build only the dynamic Nginx module
-RUN cd nginx-${NGINX_VERSION} && \
-    ./configure --with-compat \
-        --with-cc-opt="-I/usr/local/include" \
-        --with-ld-opt="-L/usr/local/lib" \
-        --add-dynamic-module=/src/coraza-nginx && \
-    make -j$(nproc) modules
-
-# 4. Clone OWASP Core Rule Set (CRS)
-RUN git clone --depth 1 https://github.com/coreruleset/coreruleset.git /tmp/coreruleset && \
-    cp /tmp/coreruleset/crs-setup.conf.example /tmp/coreruleset/crs-setup.conf
-
-# ==============================================================================
-# STAGE 2: Production Runtime
-# ==============================================================================
-FROM nginx:1.26.3-bookworm
-
-# Copy compiled shared library and Nginx module from Stage 1
-COPY --from=builder /usr/local/lib/libcoraza.so /usr/local/lib/
-COPY --from=builder /src/nginx-1.26.3/objs/ngx_http_coraza_module.so /etc/nginx/modules/
-COPY --from=builder /tmp/coreruleset /etc/nginx/coraza/coreruleset/
-
-# Update linker cache so Nginx finds libcoraza.so
-RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/coraza.conf && ldconfig
-
-# Copy our configuration files
+# Copy our custom production configurations
 COPY config/nginx.conf /etc/nginx/nginx.conf
-COPY config/coraza.conf /etc/nginx/coraza/coraza.conf
+COPY config/coraza.conf /etc/coraza/coraza.conf
 
-# Add custom styled landing page
-RUN echo '<h1>RazOps WAF Gateway - Protected by OWASP Coraza</h1>' > /usr/share/nginx/html/index.html
+# Add our custom branded landing page
+RUN mkdir -p /usr/share/nginx/html && \
+    echo '<!DOCTYPE html><html><body style="background:#0a0e17;color:#34d399;font-family:monospace;text-align:center;padding:5rem;"><h1>[RazOps WAF Gateway]</h1><p style="color:#38bdf8;">Status: Protected by OWASP Coraza WAF & CRS v4</p><p style="color:#9ca3af;">Deployment: Automated via GitHub Actions CI/CD</p></body></html>' > /usr/share/nginx/html/index.html
 
+# Expose HTTP
 EXPOSE 80
+
 STOPSIGNAL SIGQUIT
 CMD ["nginx", "-g", "daemon off;"]
