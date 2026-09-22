@@ -1,11 +1,11 @@
 # ==============================================================================
-# STAGE 1: Builder (Heavy build tools, compilers, Go runtime)
+# STAGE 1: Builder
 # ==============================================================================
 FROM golang:1.24-bookworm AS builder
 
 ARG NGINX_VERSION=1.26.3
 
-# Install C compilation tools & autotools
+# Install all essential build tools
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpcre2-dev \
@@ -14,23 +14,24 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     automake \
     libtool \
+    pkg-config \
     git \
     curl
 
 WORKDIR /src
 
-# 1. Download and build libcoraza.so (OWASP Coraza C-shared engine)
+# 1. Build and install libcoraza
 RUN git clone --depth 1 https://github.com/corazawaf/libcoraza.git && \
     cd libcoraza && \
     ./build.sh && \
-    ./configure && \
-    make -j$(nproc) install-exec install-data || true && \
+    ./configure --prefix=/usr/local && \
+    make libcoraza.so && \
     mkdir -p /usr/local/include/coraza && \
     cp coraza/coraza.h /usr/local/include/coraza/ && \
     cp libcoraza.so /usr/local/lib/ && \
     ldconfig
 
-# 2. Download Nginx matching source & Coraza Nginx Connector
+# 2. Download matching Nginx source & Coraza Nginx Connector
 RUN curl -sO http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     tar -zxvf nginx-${NGINX_VERSION}.tar.gz && \
     git clone --depth 1 https://github.com/corazawaf/coraza-nginx.git
@@ -48,7 +49,7 @@ RUN git clone --depth 1 https://github.com/coreruleset/coreruleset.git /tmp/core
     cp /tmp/coreruleset/crs-setup.conf.example /tmp/coreruleset/crs-setup.conf
 
 # ==============================================================================
-# STAGE 2: Production Runtime (Clean, secure, ultra-small)
+# STAGE 2: Production Runtime
 # ==============================================================================
 FROM nginx:1.26.3-bookworm
 
